@@ -1,8 +1,10 @@
 using System;
 using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using ThumbsPreloader.Core;
 
@@ -10,7 +12,7 @@ namespace ThumbsPreloader.Views;
 
 public partial class ProgressWindow : Window
 {
-    private readonly string _path;
+    private string _path;
     private readonly bool _recursive;
     private readonly bool _silent;
     private readonly ObservableCollection<DirectoryProgress> _stack = new();
@@ -18,15 +20,15 @@ public partial class ProgressWindow : Window
 
     public ProgressWindow() : this("", false, false) { }
 
-    public ProgressWindow(string path, bool recursive, bool silent)
+    public ProgressWindow(string? path, bool recursive, bool silent)
     {
-        _path = path;
+        _path = path ?? string.Empty;
         _recursive = recursive;
         _silent = silent;
         InitializeComponent();
 
         var rootText = this.FindControl<TextBlock>("RootText");
-        if (rootText != null) rootText.Text = path;
+        if (rootText != null) rootText.Text = _path;
         var hint = this.FindControl<TextBlock>("HintText");
         if (hint != null) hint.Text = recursive
             ? "Recursing into subdirectories. Each nested bar tracks one level of depth."
@@ -38,10 +40,36 @@ public partial class ProgressWindow : Window
         Opened += OnOpened;
     }
 
-    private void OnOpened(object? sender, EventArgs e)
+    private async void OnOpened(object? sender, EventArgs e)
     {
         Opened -= OnOpened;
+
+        if (string.IsNullOrEmpty(_path))
+        {
+            var picked = await PickFolderAsync();
+            if (string.IsNullOrEmpty(picked))
+            {
+                ExitApp();
+                return;
+            }
+            _path = picked;
+            var rootText = this.FindControl<TextBlock>("RootText");
+            if (rootText != null) rootText.Text = _path;
+        }
+
         StartJob();
+    }
+
+    private async Task<string?> PickFolderAsync()
+    {
+        var folders = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+        {
+            Title = "Select a folder to preload thumbnails",
+            AllowMultiple = false,
+        });
+
+        if (folders.Count == 0) return null;
+        return folders[0].TryGetLocalPath();
     }
 
     public void RunHeadless()

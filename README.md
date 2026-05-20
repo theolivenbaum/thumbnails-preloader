@@ -14,6 +14,10 @@ The original Windows Forms code is preserved under [`.old/`](.old/) for referenc
   through the Windows Shell `IThumbnailCache` COM interface.
 - **Nested progress bars** — one bar per directory currently being processed, stacked by
   depth, so you can watch the recursion fan in and out as the cache warms.
+- **Parallel thumbnail extraction** — files are preloaded across up to
+  `Environment.ProcessorCount / 2` worker threads (at least one) for faster cache warm-up.
+- **Folder picker on launch** — running with no arguments opens a folder selection
+  dialog instead of just showing the About window.
 - Same CLI surface as the original (`ThumbsPreloader [rs] <path>`).
 
 ## Build
@@ -42,7 +46,8 @@ ThumbsPreloader [rs] <path>
 | `s`  | Silent mode — no UI, run and exit            |
 
 With no flags, only the entries of `<path>` are processed.
-With no arguments, an About window is shown.
+With no arguments, a folder picker is shown so you can choose a directory
+interactively (non-recursive).
 
 Examples:
 

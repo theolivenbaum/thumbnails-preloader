@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 
@@ -7,7 +8,10 @@ public sealed class DirectoryProgress : INotifyPropertyChanged
 {
     private int _total;
     private int _processed;
+    private int? _subtreeTotal;
+    private int _subtreeProcessed;
     private string? _currentItem;
+    private readonly DateTime _startedAt = DateTime.UtcNow;
 
     public DirectoryProgress(string path, int depth)
     {
@@ -37,6 +41,32 @@ public sealed class DirectoryProgress : INotifyPropertyChanged
         }
     }
 
+    public int? SubtreeTotal
+    {
+        get => _subtreeTotal;
+        set
+        {
+            if (_subtreeTotal != value)
+            {
+                _subtreeTotal = value;
+                OnPropertyChanged(nameof(SubtreeTotal));
+                OnPropertyChanged(nameof(EtaText));
+            }
+        }
+    }
+
+    public int SubtreeProcessed
+    {
+        get => _subtreeProcessed;
+        set
+        {
+            if (SetField(ref _subtreeProcessed, value))
+            {
+                OnPropertyChanged(nameof(EtaText));
+            }
+        }
+    }
+
     public string? CurrentItem
     {
         get => _currentItem;
@@ -45,6 +75,38 @@ public sealed class DirectoryProgress : INotifyPropertyChanged
 
     public double Percent => _total <= 0 ? 0 : (100.0 * _processed) / _total;
     public string Caption => $"{_processed:N0} / {_total:N0}";
+
+    public TimeSpan? Eta
+    {
+        get
+        {
+            if (_subtreeTotal is not { } total) return null;
+            if (_subtreeProcessed <= 0 || total <= 0) return null;
+            var remaining = total - _subtreeProcessed;
+            if (remaining <= 0) return TimeSpan.Zero;
+            var elapsed = DateTime.UtcNow - _startedAt;
+            if (elapsed <= TimeSpan.Zero) return null;
+            var ticksPerItem = elapsed.Ticks / (double)_subtreeProcessed;
+            return TimeSpan.FromTicks((long)(ticksPerItem * remaining));
+        }
+    }
+
+    public string EtaText
+    {
+        get
+        {
+            if (_subtreeTotal is null) return "ETA --";
+            var eta = Eta;
+            return eta is null ? "ETA --" : $"ETA {FormatEta(eta.Value)}";
+        }
+    }
+
+    private static string FormatEta(TimeSpan span)
+    {
+        if (span.TotalHours >= 1) return $"{(int)span.TotalHours}h {span.Minutes}m";
+        if (span.TotalMinutes >= 1) return $"{span.Minutes}m {span.Seconds:00}s";
+        return $"{Math.Max(0, span.Seconds)}s";
+    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

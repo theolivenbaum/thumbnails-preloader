@@ -20,7 +20,7 @@ public partial class App : Application
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            if (StartupOptions is { BadArguments: false, Path: { } path })
+            if (StartupOptions is { BadArguments: false, NoArguments: false, Path: { } path })
             {
                 if (StartupOptions.SilentMode)
                 {
@@ -33,6 +33,10 @@ public partial class App : Application
                     var window = new ProgressWindow(path, StartupOptions.IncludeNestedDirectories, silent: false);
                     desktop.MainWindow = window;
                 }
+            }
+            else if (StartupOptions is { NoArguments: true })
+            {
+                desktop.MainWindow = new ProgressWindow(path: null, recursive: false, silent: false);
             }
             else
             {

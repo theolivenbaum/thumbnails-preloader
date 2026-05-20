@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -48,7 +49,7 @@ public sealed class PreloadJob
             {
                 _preloaders = new ThreadLocal<ThumbnailPreloader>(() => new ThumbnailPreloader(), trackAllValues: true);
                 SetState(PreloadJobState.Running);
-                Process(_rootPath, depth: 0);
+                Process(_rootPath, depth: 0, ancestors: new List<DirectoryProgress>());
                 if (_cts.IsCancellationRequested)
                 {
                     SetState(PreloadJobState.Canceled);
@@ -71,7 +72,7 @@ public sealed class PreloadJob
         });
     }
 
-    private void Process(string directory, int depth)
+    private void Process(string directory, int depth, List<DirectoryProgress> ancestors)
     {
         if (_cts.IsCancellationRequested) return;
 
@@ -97,6 +98,28 @@ public sealed class PreloadJob
         var node = new DirectoryProgress(directory, depth) { Total = total };
         _dispatch(() => DirectoryEntered?.Invoke(node));
 
+        if (_recursive)
+        {
+            var capturedNode = node;
+            var capturedDir = directory;
+            Task.Run(() =>
+            {
+                var subtreeTotal = CountSubtree(capturedDir);
+                if (_cts.IsCancellationRequested) return;
+                _dispatch(() => capturedNode.SubtreeTotal = subtreeTotal);
+            }, _cts.Token);
+        }
+        else
+        {
+            // Non-recursive: subtree == immediate, so ETA is available right away.
+            var capturedNode = node;
+            _dispatch(() => capturedNode.SubtreeTotal = total);
+        }
+
+        var chain = new List<DirectoryProgress>(ancestors.Count + 1);
+        chain.AddRange(ancestors);
+        chain.Add(node);
+
         try
         {
             foreach (var sub in subdirs)
@@ -104,8 +127,8 @@ public sealed class PreloadJob
                 if (_cts.IsCancellationRequested) return;
                 _dispatch(() => node.CurrentItem = Path.GetFileName(sub));
                 _preloaders?.Value?.PreloadThumbnail(sub);
-                Process(sub, depth + 1);
-                _dispatch(() => node.Processed += 1);
+                Process(sub, depth + 1, chain);
+                BumpProcessed(chain);
             }
 
             var parallelItems = topLevelDirs.Concat(files).ToArray();
@@ -124,7 +147,7 @@ public sealed class PreloadJob
                         if (_cts.IsCancellationRequested) return;
                         _dispatch(() => node.CurrentItem = Path.GetFileName(item));
                         _preloaders?.Value?.PreloadThumbnail(item);
-                        _dispatch(() => node.Processed += 1);
+                        BumpProcessed(chain);
                     });
                 }
                 catch (OperationCanceledException)
@@ -137,6 +160,36 @@ public sealed class PreloadJob
         {
             _dispatch(() => DirectoryExited?.Invoke(node));
         }
+    }
+
+    private void BumpProcessed(List<DirectoryProgress> chain)
+    {
+        _dispatch(() =>
+        {
+            if (chain.Count > 0) chain[^1].Processed += 1;
+            foreach (var ancestor in chain) ancestor.SubtreeProcessed += 1;
+        });
+    }
+
+    private int CountSubtree(string directory)
+    {
+        if (_cts.IsCancellationRequested) return 0;
+        int count = 0;
+        try
+        {
+            var subdirs = Directory.GetDirectories(directory);
+            var files = Directory.GetFiles(directory);
+            count = subdirs.Length + files.Length;
+            foreach (var sub in subdirs)
+            {
+                if (_cts.IsCancellationRequested) return count;
+                count += CountSubtree(sub);
+            }
+        }
+        catch
+        {
+        }
+        return count;
     }
 
     private void SetState(PreloadJobState state)

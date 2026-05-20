@@ -1,0 +1,60 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        x:Class="ThumbsPreloader.Views.AboutWindow"
+        Title="About ThumbsPreloader"
+        Width="520" Height="380"
+        CanResize="False"
+        WindowStartupLocation="CenterScreen"
+        Icon="/Assets/icon.ico">
+    <Grid RowDefinitions="Auto,*,Auto">
+
+        <Border Grid.Row="0" Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                Padding="20,16">
+            <StackPanel Orientation="Horizontal" Spacing="16">
+                <Image Source="/Assets/icon.ico" Width="48" Height="48" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Name="AppNameText" FontSize="20" FontWeight="SemiBold"
+                               Text="ThumbsPreloader" />
+                    <TextBlock Name="UpdateText" Foreground="Gray" Margin="0,4,0,0"
+                               Text="Checking for updates..." />
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" Padding="20,16">
+            <StackPanel Spacing="10">
+                <TextBlock TextWrapping="Wrap"
+                           Text="ThumbsPreloader is a cross-platform thumbnail cache pre-population tool, modernized for .NET 10 and Avalonia UI. On Windows it warms the Shell thumbnail cache so file managers display preview images instantly." />
+                <TextBlock TextWrapping="Wrap">
+                    <Run Text="Usage:" FontWeight="SemiBold" />
+                    <LineBreak />
+                    <Run Text="  ThumbsPreloader [rs] &lt;path&gt;" />
+                </TextBlock>
+                <TextBlock TextWrapping="Wrap">
+                    <Run FontWeight="SemiBold" Text="Options:" />
+                    <LineBreak />
+                    <Run Text="  r   recurse into subdirectories" />
+                    <LineBreak />
+                    <Run Text="  s   silent mode (no UI window)" />
+                </TextBlock>
+                <TextBlock TextWrapping="Wrap">
+                    <Run FontWeight="SemiBold" Text="Project:" />
+                    <Run Text="https://github.com/theolivenbaum/thumbnails-preloader" />
+                </TextBlock>
+                <TextBlock TextWrapping="Wrap" Foreground="Gray" FontSize="11"
+                           Text="Originally based on bruhov/WinThumbsPreloader (MIT). Native thumbnail cache extraction is only available on Windows." />
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="2" Background="{DynamicResource SystemControlBackgroundChromeMediumLowBrush}"
+                Padding="16,12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+                <Button Name="LicenseButton" Content="License" Click="OnLicenseClick" />
+                <Button Name="CloseButton" Content="Close" IsDefault="True" Click="OnCloseClick" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

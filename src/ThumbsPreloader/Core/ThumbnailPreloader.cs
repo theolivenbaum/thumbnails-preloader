@@ -1,10 +1,8 @@
 using System;
 using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 
 namespace ThumbsPreloader.Core;
 
-[SupportedOSPlatform("windows")]
 public sealed class ThumbnailPreloader
 {
     private static readonly Guid IIdIShellItem = new("43826d1e-e718-42ee-bc55-a1e261c37bfe");

@@ -13,7 +13,7 @@ namespace ThumbsPreloader.Views;
 public partial class ProgressWindow : Window
 {
     private string _path;
-    private readonly bool _recursive;
+    private bool _recursive;
     private readonly bool _silent;
     private readonly ObservableCollection<DirectoryProgress> _stack = new();
     private PreloadJob? _job;
@@ -52,6 +52,7 @@ public partial class ProgressWindow : Window
                 ExitApp();
                 return;
             }
+            _recursive = true;
             _path = picked;
             var rootText = this.FindControl<TextBlock>("RootText");
             if (rootText != null) rootText.Text = _path;

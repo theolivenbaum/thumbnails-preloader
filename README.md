@@ -1,6 +1,76 @@
-# WinThumbsPreloader
-Thumbnails preloader for Windows Explorer
+# ThumbsPreloader
 
-![Screenshot](https://raw.githubusercontent.com/bruhov/WinThumbsPreloader/master/Website/images/preview.gif)
+A modernized .NET 10 / [Avalonia UI](https://avaloniaui.net/) rewrite of
+[bruhov/WinThumbsPreloader](https://github.com/bruhov/WinThumbsPreloader). It walks a
+directory tree and asks the Windows Shell thumbnail cache to extract a preview for every
+file, so file managers display thumbnails instantly afterward.
 
-### Download: [WinThumbsPreloader-1.0.1-setup.exe](https://github.com/bruhov/WinThumbsPreloader/releases/download/v1.0.1/WinThumbsPreloader-1.0.1-setup.exe)
+The original Windows Forms code is preserved under [`.old/`](.old/) for reference.
+
+## Highlights
+
+- .NET 10, Avalonia 11, Fluent theme.
+- Single cross-platform project. The thumbnail-extraction COM code only runs on Windows;
+  the UI itself is cross-platform.
+- **Nested progress bars** — one bar per directory currently being processed, stacked by
+  depth, so you can watch the recursion fan in and out as the cache warms.
+- Same CLI surface as the original (`ThumbsPreloader [rs] <path>`).
+
+## Build
+
+```sh
+dotnet build src/ThumbsPreloader/ThumbsPreloader.csproj -c Release
+```
+
+To produce a self-contained Windows executable:
+
+```sh
+dotnet publish src/ThumbsPreloader/ThumbsPreloader.csproj \
+    -c Release -r win-x64 --self-contained true \
+    -p:PublishSingleFile=true
+```
+
+## Usage
+
+```
+ThumbsPreloader [rs] <path>
+```
+
+| Flag | Meaning                                      |
+|------|----------------------------------------------|
+| `r`  | Recurse into subdirectories                  |
+| `s`  | Silent mode — no UI, run and exit            |
+
+With no flags, only the entries of `<path>` are processed.
+With no arguments, an About window is shown.
+
+Examples:
+
+```sh
+ThumbsPreloader "C:\Users\me\Pictures"
+ThumbsPreloader r "D:\Photo Library"
+ThumbsPreloader rs "E:\Archive"
+```
+
+## How the progress UI works
+
+For every directory the worker walks into, a new `DirectoryProgress` node is pushed onto
+a stack and rendered as its own progress bar. When the worker returns from that
+directory, the node is popped. At any moment the window shows:
+
+- the top-level root progress, plus
+- one nested bar for each currently-active depth, with the deepest one being the
+  directory whose entry is being processed right now.
+
+Each bar tracks its own item count and current filename. The UI updates on the
+Avalonia dispatcher; the COM work happens on a background thread.
+
+## Platform notes
+
+Thumbnail extraction goes through `IThumbnailCache` (`shell32.dll`), so the actual
+cache-warming functionality is **Windows-only**. On other platforms the app starts and
+shows an "Unsupported platform" message.
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).

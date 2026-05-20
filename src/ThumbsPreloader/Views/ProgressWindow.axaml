@@ -1,0 +1,69 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:core="using:ThumbsPreloader.Core"
+        mc:Ignorable="d"
+        x:Class="ThumbsPreloader.Views.ProgressWindow"
+        x:DataType="core:DirectoryProgress"
+        Title="ThumbsPreloader"
+        Width="640" MinHeight="220"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        Icon="/Assets/icon.ico">
+
+    <Window.Styles>
+        <Style Selector="Border.depth">
+            <Setter Property="BorderThickness" Value="2,0,0,0" />
+            <Setter Property="Padding" Value="12,6,8,6" />
+            <Setter Property="Margin" Value="0,2,0,2" />
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="Auto,*,Auto,Auto" Margin="16">
+        <StackPanel Grid.Row="0" Spacing="2">
+            <TextBlock Name="StatusText" FontSize="15" FontWeight="SemiBold"
+                       Text="Preloading thumbnails..." />
+            <TextBlock Name="RootText" Foreground="Gray" TextTrimming="CharacterEllipsis" />
+        </StackPanel>
+
+        <ItemsControl Name="StackHost" Grid.Row="1" Margin="0,12,0,0">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="core:DirectoryProgress">
+                    <Border Classes="depth"
+                            BorderBrush="{DynamicResource SystemAccentColorLight2Brush}">
+                        <StackPanel Spacing="4">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding Path}"
+                                           TextTrimming="CharacterEllipsis"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Grid.Column="1"
+                                           Margin="8,0,0,0"
+                                           Foreground="Gray"
+                                           Text="{Binding Caption}" />
+                            </Grid>
+                            <ProgressBar Minimum="0" Maximum="100"
+                                         Value="{Binding Percent}"
+                                         Height="6" />
+                            <TextBlock Text="{Binding CurrentItem}"
+                                       Foreground="Gray"
+                                       FontSize="11"
+                                       TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <TextBlock Grid.Row="2" Name="HintText"
+                   Margin="0,8,0,0"
+                   Foreground="Gray" FontSize="11"
+                   TextWrapping="Wrap" />
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right"
+                    Margin="0,12,0,0" Spacing="8">
+            <Button Name="CancelButton" Content="Cancel" Click="OnCancelClick" />
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,7 +1,5 @@
 using System;
 using System.Collections.ObjectModel;
-using System.Runtime.InteropServices;
-using System.Runtime.Versioning;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
@@ -54,18 +52,6 @@ public partial class ProgressWindow : Window
 
     private void StartJob()
     {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            ShowUnsupported();
-            return;
-        }
-
-        StartJobWindows();
-    }
-
-    [SupportedOSPlatform("windows")]
-    private void StartJobWindows()
-    {
         _job = new PreloadJob(_path, _recursive, action => Dispatcher.UIThread.Post(action));
         _job.DirectoryEntered += OnDirectoryEntered;
         _job.DirectoryExited += OnDirectoryExited;
@@ -116,16 +102,6 @@ public partial class ProgressWindow : Window
                 // Give the user a moment to see "Done" before auto-closing.
             });
         }
-    }
-
-    private void ShowUnsupported()
-    {
-        var status = this.FindControl<TextBlock>("StatusText");
-        if (status != null) status.Text = "Unsupported platform";
-        var hint = this.FindControl<TextBlock>("HintText");
-        if (hint != null) hint.Text = "Thumbnail cache preloading uses the Windows Shell API and is only available on Windows.";
-        var cancel = this.FindControl<Button>("CancelButton");
-        if (cancel != null) cancel.Content = "Close";
     }
 
     private void OnCancelClick(object? sender, RoutedEventArgs e)

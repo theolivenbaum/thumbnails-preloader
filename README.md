@@ -10,8 +10,8 @@ The original Windows Forms code is preserved under [`.old/`](.old/) for referenc
 ## Highlights
 
 - .NET 10, Avalonia 11, Fluent theme.
-- Single cross-platform project. The thumbnail-extraction COM code only runs on Windows;
-  the UI itself is cross-platform.
+- Windows-only — the app targets `net10.0-windows` because thumbnail extraction goes
+  through the Windows Shell `IThumbnailCache` COM interface.
 - **Nested progress bars** — one bar per directory currently being processed, stacked by
   depth, so you can watch the recursion fan in and out as the cache warms.
 - Same CLI surface as the original (`ThumbsPreloader [rs] <path>`).
@@ -67,9 +67,8 @@ Avalonia dispatcher; the COM work happens on a background thread.
 
 ## Platform notes
 
-Thumbnail extraction goes through `IThumbnailCache` (`shell32.dll`), so the actual
-cache-warming functionality is **Windows-only**. On other platforms the app starts and
-shows an "Unsupported platform" message.
+This project targets `net10.0-windows` and uses `IThumbnailCache` from `shell32.dll`,
+so it builds and runs on Windows only.
 
 ## License
 

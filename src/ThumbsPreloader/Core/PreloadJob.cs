@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Runtime.Versioning;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,7 +14,6 @@ public enum PreloadJobState
     Failed,
 }
 
-[SupportedOSPlatform("windows")]
 public sealed class PreloadJob
 {
     private readonly string _rootPath;

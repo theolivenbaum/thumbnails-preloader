@@ -5,13 +5,20 @@ namespace ThumbsPreloader.Core;
 public sealed class Options
 {
     public bool BadArguments { get; }
+    public bool NoArguments { get; }
     public bool IncludeNestedDirectories { get; }
     public bool SilentMode { get; }
     public string? Path { get; }
 
     public Options(string[] arguments)
     {
-        if (arguments.Length == 0 || arguments.Length > 2)
+        if (arguments.Length == 0)
+        {
+            NoArguments = true;
+            return;
+        }
+
+        if (arguments.Length > 2)
         {
             BadArguments = true;
             return;

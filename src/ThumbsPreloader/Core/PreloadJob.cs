@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,7 +21,8 @@ public sealed class PreloadJob
     private readonly bool _recursive;
     private readonly CancellationTokenSource _cts = new();
     private readonly Action<Action> _dispatch;
-    private ThumbnailPreloader? _preloader;
+    private readonly int _parallelism = Math.Max(1, Environment.ProcessorCount / 2);
+    private ThreadLocal<ThumbnailPreloader>? _preloaders;
 
     public PreloadJob(string rootPath, bool recursive, Action<Action> dispatch)
     {
@@ -44,7 +46,7 @@ public sealed class PreloadJob
         {
             try
             {
-                _preloader = new ThumbnailPreloader();
+                _preloaders = new ThreadLocal<ThumbnailPreloader>(() => new ThumbnailPreloader(), trackAllValues: true);
                 SetState(PreloadJobState.Running);
                 Process(_rootPath, depth: 0);
                 if (_cts.IsCancellationRequested)
@@ -60,6 +62,11 @@ public sealed class PreloadJob
             {
                 Error = ex.Message;
                 SetState(PreloadJobState.Failed);
+            }
+            finally
+            {
+                _preloaders?.Dispose();
+                _preloaders = null;
             }
         });
     }
@@ -96,25 +103,34 @@ public sealed class PreloadJob
             {
                 if (_cts.IsCancellationRequested) return;
                 _dispatch(() => node.CurrentItem = Path.GetFileName(sub));
-                _preloader?.PreloadThumbnail(sub);
+                _preloaders?.Value?.PreloadThumbnail(sub);
                 Process(sub, depth + 1);
                 _dispatch(() => node.Processed += 1);
             }
 
-            foreach (var dir in topLevelDirs)
+            var parallelItems = topLevelDirs.Concat(files).ToArray();
+            if (parallelItems.Length > 0)
             {
-                if (_cts.IsCancellationRequested) return;
-                _dispatch(() => node.CurrentItem = Path.GetFileName(dir));
-                _preloader?.PreloadThumbnail(dir);
-                _dispatch(() => node.Processed += 1);
-            }
+                var parallelOptions = new ParallelOptions
+                {
+                    MaxDegreeOfParallelism = _parallelism,
+                    CancellationToken = _cts.Token,
+                };
 
-            foreach (var file in files)
-            {
-                if (_cts.IsCancellationRequested) return;
-                _dispatch(() => node.CurrentItem = Path.GetFileName(file));
-                _preloader?.PreloadThumbnail(file);
-                _dispatch(() => node.Processed += 1);
+                try
+                {
+                    Parallel.ForEach(parallelItems, parallelOptions, item =>
+                    {
+                        if (_cts.IsCancellationRequested) return;
+                        _dispatch(() => node.CurrentItem = Path.GetFileName(item));
+                        _preloaders?.Value?.PreloadThumbnail(item);
+                        _dispatch(() => node.Processed += 1);
+                    });
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
             }
         }
         finally
